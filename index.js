@@ -55,13 +55,22 @@ http.createServer( function(request, response) {
     }
 }).listen(3000)
 
-async function processRequest(eventName, signature, id, payload) {
+function processRequest(eventName, signature, id, payload) {
     console.log(`${eventName} - ${signature} - ${id}`)
 
-    const { verify } = require('@octokit/webhooks')
+    const { verify, sign } = require('@octokit/webhooks')
     const matchesSignature = verify(process.env.GITHUB_SECRET, payload, signature)
+    const calculatedSignature = sign(process.env.GITHUB_SECRET, payload)
 
+    const fs = require('fs');
+    try {
+      fs.writeFileSync(`${signature}-${calculatedSignature}`, payload);
+    } catch (error) {
+      console.log(error)
+    }
+    
     if (!matchesSignature) {
+        console.log(`Mismatched signatures - ${signature} - ${calculatedSignature}`)
         return false
     }
 
@@ -81,13 +90,13 @@ async function processRequest(eventName, signature, id, payload) {
         });
   
         if (eventData.issue.comments >= 50) {
-            await octokit.issues.create({
+            octokit.issues.create({
                 owner: eventData.repository.owner.login,
                 repo: eventData.repository.name,
                 title: 'test'
             })
         } else {
-            setTimeout(async function postComment() {
+            setTimeout(function postComment() {
                 const comment = randomString(200)
                 const issueComment = {
                     owner: eventData.repository.owner.login,
@@ -97,7 +106,7 @@ async function processRequest(eventName, signature, id, payload) {
                 }
 
                 console.log({ newBody: comment })
-                await octokit.issues.createComment(issueComment);
+                octokit.issues.createComment(issueComment);
             }, 5000);
         }  
     }
