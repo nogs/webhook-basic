@@ -11,6 +11,8 @@ http.createServer( function(request, response) {
 
             var payload = '';
 
+            request.setEncoding('utf8')
+
             request.on( 'error', function(error) {
                 console.log(`Error reading request body: ${error}`)
                 response.writeHead( 500, 'OK', {
@@ -89,26 +91,18 @@ function processRequest(eventName, signature, id, payload) {
           },
         });
   
-        if (eventData.issue.comments >= 50) {
-            octokit.issues.create({
+        setTimeout(function postComment() {
+            const comment = randomString(200)
+            const issueComment = {
                 owner: eventData.repository.owner.login,
                 repo: eventData.repository.name,
-                title: 'test'
-            })
-        } else {
-            setTimeout(function postComment() {
-                const comment = randomString(200)
-                const issueComment = {
-                    owner: eventData.repository.owner.login,
-                    repo: eventData.repository.name,
-                    issue_number: eventData.issue.number,
-                    body: comment
-                }
+                issue_number: eventData.issue.number,
+                body: comment
+            }
 
-                console.log({ newBody: comment })
-                octokit.issues.createComment(issueComment);
-            }, 5000);
-        }  
+            console.log({ newBody: comment })
+            octokit.issues.createComment(issueComment);
+        }, 5000);
     }
 
     return true
